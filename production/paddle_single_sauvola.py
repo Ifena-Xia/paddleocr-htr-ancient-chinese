@@ -1,5 +1,5 @@
 # 使用Sauvola二值化
-# python3 paddle_single_sauvola.py --image 10_7eea5_default.jpg --outdir out --lang ch --to_pagexml --preprocess binarize_sauvola
+# python3 paddle_single_sauvola.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess binarize_sauvola
 
 import os, json, argparse, time, signal
 from pathlib import Path
