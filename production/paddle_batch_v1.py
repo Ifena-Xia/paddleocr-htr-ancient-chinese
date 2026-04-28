@@ -1,6 +1,6 @@
 # 用法：
-#  單張圖片：python3 paddle_batch_v1.py --image page1.jpg --outdir out --lang ch --to_pagexml --with_rec
-#  批量處理：python3 paddle_batch_v1.py --input_dir images --outdir out --lang ch --to_pagexml --with_rec
+#  單張圖片：python3 paddle_batch_v1.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --with_rec
+#  批量處理：python3 paddle_batch_v1.py --input_dir 文件夾名稱 --outdir out --lang ch --to_pagexml --with_rec
 
 import os, json, argparse, time, signal, glob
 from pathlib import Path
