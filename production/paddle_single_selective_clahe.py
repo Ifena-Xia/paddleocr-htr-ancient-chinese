@@ -1,7 +1,7 @@
 # 用法：
-#  只做分割：python3 paddle_single_selective_clahe.py --image Page_9.png --outdir out --lang ch --to_pagexml
-#  選擇性預處理：python3 paddle_single_selective_clahe.py --image 9_f86f6_default.jpg --outdir out --lang ch --to_pagexml --preprocess selective
-#  分割+文字：python3 paddle_single_selective_clahe.py --image Page_9.png --outdir out --lang ch --to_pagexml --with_rec
+#  只做分割：python3 paddle_single_selective_clahe.py --image 圖片名稱 --outdir out --lang ch --to_pagexml
+#  選擇性預處理：python3 paddle_single_selective_clahe.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess selective
+#  分割+文字：python3 paddle_single_selective_clahe.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --with_rec
 
 import os, json, argparse, time, signal
 from pathlib import Path
