@@ -1,6 +1,6 @@
 # 用法：
-#  單張圖片：python3 paddle_batch_v2_predict_api.py --image 212_862de_default.jpg --outdir out --lang ch --to_pagexml
-#  批量處理：python3 paddle_batch_v2_predict_api.py --input_dir images --outdir out --lang ch --to_pagexml
+#  單張圖片：python3 paddle_batch_v2_predict_api.py --image 圖片名稱 --outdir out --lang ch --to_pagexml
+#  批量處理：python3 paddle_batch_v2_predict_api.py --input_dir 文件夾名稱 --outdir out --lang ch --to_pagexml
 
 import os, json, argparse, time, signal, glob
 from pathlib import Path
