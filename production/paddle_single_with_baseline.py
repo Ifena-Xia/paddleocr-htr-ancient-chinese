@@ -1,6 +1,6 @@
 # 用法：
-#  只做分割：python3 paddle_single_with_baseline.py --image 4_f51c1_default.jpg --outdir out --lang ch --to_pagexml
-#  分割+文字：python3 paddle_single_with_baseline.py --image 3_fdfb2_default.jpg --outdir out --lang ch --to_pagexml --with_rec
+#  只做分割：python3 paddle_single_with_baseline.py --image 圖片名稱 --outdir out --lang ch --to_pagexml
+#  分割+文字：python3 paddle_single_with_baseline.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --with_rec
 
 import os, json, argparse, time, signal
 from pathlib import Path
