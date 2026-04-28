@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PaddleOCR HTR Pipeline for Ancient Chinese Manuscripts
 
 Scripts for driving PaddleOCR to generate base segmentation of vertically-written ancient Chinese manuscripts, producing PAGE-XML output compatible with [eScriptorium](https://escriptorium.fr/).
@@ -200,3 +201,7 @@ The `sort_vertical_rtl()` function sorts by x-center descending (right to left) 
 
 **`NumPy` or `OpenCV` version conflict.**
 PaddleOCR silently breaks with NumPy 2.x. Pin to `numpy==1.26.4` in your virtual environment. See the recommended setup above.
+=======
+# paddleocr-htr-ancient-chinese
+PaddleOCR-based base segmentation pipeline for vertically-written ancient Chinese manuscripts, producing PAGE-XML for eScriptorium.
+>>>>>>> d9ee1caf1e22fbebedc551cead3e66cc92298dfc
