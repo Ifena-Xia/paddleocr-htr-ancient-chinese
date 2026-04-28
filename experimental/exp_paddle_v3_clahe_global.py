@@ -1,7 +1,7 @@
 # 用法：
-#  只做分割：python3 exp_paddle_v3_clahe_global.py --image Page_9.png --outdir out --lang ch --to_pagexml
-#  應用於處理（增強對比度）：python3 exp_paddle_v3_clahe_global.py --image debug_sauvola_binary_9.png --outdir out --lang ch --to_pagexml --preprocess
-#  分割+文字：python3 exp_paddle_v3_clahe_global.py --image Page_9.png --outdir out --lang ch --to_pagexml --with_rec
+#  只做分割：python3 exp_paddle_v3_clahe_global.py --image 圖片名稱 --outdir out --lang ch --to_pagexml
+#  應用於處理（增強對比度）：python3 exp_paddle_v3_clahe_global.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess
+#  分割+文字：python3 exp_paddle_v3_clahe_global.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --with_rec
 
 import os, json, argparse, time, signal
 from pathlib import Path
