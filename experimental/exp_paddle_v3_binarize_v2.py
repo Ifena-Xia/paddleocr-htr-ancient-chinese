@@ -1,9 +1,9 @@
 # 嘗試自適應二值化
-# python3 exp_paddle_v3_binarize_v2.py --image Page_9.png --outdir out --lang ch --to_pagexml --preprocess binarize_adaptive
+# python3 exp_paddle_v3_binarize_v2.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess binarize_adaptive
 # 嘗試Sauvola二值化（特別適合文檔）
-# python3 exp_paddle_v3_binarize_v2.py --image Page_9.png --outdir out --lang ch --to_pagexml --preprocess binarize_sauvola
+# python3 exp_paddle_v3_binarize_v2.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess binarize_sauvola
 # 啟用後處理過濾
-# python3 exp_paddle_v3_binarize_v2.py --image Page_9.png --outdir out --lang ch --to_pagexml --preprocess binarize_adaptive --filter_boxes
+# python3 exp_paddle_v3_binarize_v2.py --image 圖片名稱 --outdir out --lang ch --to_pagexml --preprocess binarize_adaptive --filter_boxes
 
 import os, json, argparse, time, signal
 from pathlib import Path
