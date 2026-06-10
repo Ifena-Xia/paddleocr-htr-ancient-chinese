@@ -143,7 +143,7 @@ These scripts are preserved for reference only. None of them should be used for 
 
 ## Case study: dense vertical layouts in *Xing li da quan shu* (the v5 script)
 
-This section documents a troubleshooting episode, not an API migration. The v2 to v4 scripts remain fully functional for the layouts they were built on. What follows concerns a specific manuscript property — densely packed vertical columns, especially small-character commentary — that defeats the standard detection configuration regardless of script version.
+The v2 to v4 scripts remain fully functional for the layouts they were built on. What follows concerns a specific manuscript property — densely packed vertical columns, especially small-character commentary — that defeats the standard detection configuration regardless of script version.
 
 ### The problem
 
