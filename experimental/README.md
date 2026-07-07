@@ -1,4 +1,4 @@
-# experimental/
+# experimental
 
 Development trail. Nothing here is for use. Two reasons a script lands here:
 
