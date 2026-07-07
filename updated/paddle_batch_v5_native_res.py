@@ -11,33 +11,28 @@
 #
 # ============================== 用法總覽 ==============================
 #
-# 【模式控制 --mode】
-#   seg      只做 base segmentation，只加載檢測模型（最輕量，推薦起步）
-#   seg_rec  分割 + 文字識別，文字寫入 PAGE-XML 作預填
-#   rec      只做識別：讀入 eScriptorium 修正後導出的 PAGE-XML，
-#            按框裁切識別，把文字寫回新的 XML（需 --xml_dir）
+# 輸入：--image 單張 或 --input_dir 整個資料夾
+#       支持 jpg / jpeg / png / tif / tiff / bmp / webp
+# 輸出：--outdir 指定資料夾；不填則自動命名為 <輸入資料夾名><後綴>
+#       （seg→_seg，rec→_rec，seg_rec→_rec_seg，建於輸入資料夾旁）
 #
-# 【策略控制 --strategy】（僅 seg / seg_rec 模式）
-#   native    直接以原始解析度檢測（默認，先試這個）
-#   rotate90  整頁旋轉 90 度檢測後映射回原座標（密排頁的備用方案）
-#   auto      先 native，若豎排框比例 < --auto_threshold 再試 rotate90，取較優
-#
-# 【XML 控制】
-#   加 --to_pagexml 導出 PAGE-XML（eScriptorium 可導入，含 Baseline）
-#   不加則只輸出 JSON 與疊框預覽圖
+# --mode      seg      只分割，只加載檢測模型（最輕量，推薦起步）
+#             seg_rec  分割 + 識別，文字寫入 PAGE-XML 作預填
+#             rec      只識別：讀 eScriptorium 修正後的 PAGE-XML，
+#                      裁框識別後回填新 XML（需 --xml_dir）
+# --strategy  native   原始解析度檢測（默認）；rotate90 旋轉 90 度後映射回原座標
+# （seg/seg_rec）        （密排豎排備用）；auto 先 native，豎排比例低於
+#                      --auto_threshold 再試 rotate90，取較優
+# --to_pagexml 導出 PAGE-XML（eScriptorium 可導入，含 Baseline）；不加則只出 JSON + 疊框預覽
+# --pre_max_side N     僅記憶體不足時降解析度（會損害密排列分離，慎用）
 #
 # 【示例】
-#   單張，只分割，導出 XML：
-#     python3 paddle_batch_v5_native_res.py --image page.jpg --outdir out --to_pagexml
-#   批量，分割+識別，auto 策略：
-#     python3 paddle_batch_v5_native_res.py --input_dir images/ --outdir out \
-#         --mode seg_rec --strategy auto --to_pagexml
-#   只識別（回填 eScriptorium 修正後的框）：
-#     python3 paddle_batch_v5_native_res.py --input_dir images/ --xml_dir corrected_xml/ \
-#         --outdir out --mode rec
-#   記憶體緊張的舊 Mac（謹慎降解析度，2400 仍遠高於 v4 的 1200）：
-#     python3 paddle_batch_v5_native_res.py --image page.jpg --outdir out \
-#         --to_pagexml --pre_max_side 2400
+#   單張分割導出 XML：
+#     python3 paddle_batch_v5_native_res.py --image page.jpg --to_pagexml
+#   批量分割+識別（auto）：
+#     python3 paddle_batch_v5_native_res.py --input_dir images/ --mode seg_rec --strategy auto --to_pagexml
+#   只識別（回填修正框）：
+#     python3 paddle_batch_v5_native_res.py --input_dir images/ --xml_dir corrected_xml/ --mode rec
 #
 # ======================================================================
 
@@ -445,7 +440,7 @@ def main():
     ap = argparse.ArgumentParser(description="PaddleOCR 3.6.x 豎排古籍 base segmentation（原生解析度版）")
     ap.add_argument("--image", help="單張圖片路徑")
     ap.add_argument("--input_dir", help="批量處理的圖片文件夾")
-    ap.add_argument("--outdir", required=True)
+    ap.add_argument("--outdir", help="不填則自動命名為 <輸入資料夾名><後綴>（seg→_seg, rec→_rec, seg_rec→_rec_seg）")
     ap.add_argument("--mode", choices=["seg", "seg_rec", "rec"], default="seg")
     ap.add_argument("--strategy", choices=["native", "rotate90", "auto"], default="auto")
     ap.add_argument("--auto_threshold", type=float, default=0.6,
@@ -477,12 +472,20 @@ def main():
     if not args.image and not args.input_dir:
         ap.error("需要 --image 或 --input_dir")
 
+    if not args.outdir:
+        suffix = {"seg": "_seg", "rec": "_rec", "seg_rec": "_rec_seg"}[args.mode]
+        src = args.input_dir if args.input_dir else os.path.dirname(os.path.abspath(args.image))
+        base = os.path.basename(os.path.normpath(src))
+        args.outdir = os.path.join(os.path.dirname(os.path.normpath(src)), base + suffix)
+        print(f"[INFO] 自動輸出資料夾：{args.outdir}")
+
     os.makedirs(args.outdir, exist_ok=True)
     if args.image:
         process_image(args.image, args)
     else:
-        exts = ("*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff")
-        files = sorted(sum([glob.glob(os.path.join(args.input_dir, e)) for e in exts], []))
+        exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
+        files = sorted(p for p in glob.glob(os.path.join(args.input_dir, "*"))
+                       if os.path.splitext(p)[1].lower() in exts)
         print(f"[INFO] 共 {len(files)} 張圖片")
         for fp in files:
             try:
