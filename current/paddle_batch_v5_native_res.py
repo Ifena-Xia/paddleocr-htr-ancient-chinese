@@ -1,5 +1,9 @@
 # paddle_batch_v5_native_res.py
-# 適用版本：PaddleOCR 3.6.x（已對照 3.6.0 已安裝源碼核對全部參數名與輸出結構）
+# 適用版本：PaddleOCR 3.0.x 至 3.7.0
+#   （v5 已於 3.0.x 與 3.6.x 實測；參數名與輸出結構已對照 3.7.0 源碼核對）
+#
+# 本腳本同時併入了原 production 單張腳本的可選預處理（Sauvola 二值化、
+# 選擇性 CLAHE），改為在原生解析度下直接作用於已載入影像，見 --preprocess。
 #
 # 與 v4 的關鍵區別（為什麼性理大全的豎排在 v4 會失敗）：
 #   v4 先用 PIL 把圖片硬縮到 max_side=1200 再送檢測。密排窄列在低解析度下
@@ -24,6 +28,9 @@
 # （seg/seg_rec）        （密排豎排備用）；auto 先 native，豎排比例低於
 #                      --auto_threshold 再試 rotate90，取較優
 # --to_pagexml 導出 PAGE-XML（eScriptorium 可導入，含 Baseline）；不加則只出 JSON + 疊框預覽
+# --preprocess sauvola | clahe_selective  檢測前影像預處理（seg / seg_rec 模式）：
+#                      sauvola 局部二值化，適合透印 / 顯影不足；clahe_selective
+#                      只增強局部低對比區域。預覽圖會畫在預處理後的影像上。
 # --pre_max_side N     僅記憶體不足時降解析度（會損害密排列分離，慎用）
 #
 # 【示例】
@@ -33,10 +40,12 @@
 #     python3 paddle_batch_v5_native_res.py --input_dir images/ --mode seg_rec --strategy auto --to_pagexml
 #   只識別（回填修正框）：
 #     python3 paddle_batch_v5_native_res.py --input_dir images/ --xml_dir corrected_xml/ --mode rec
+#   透印 / 低對比頁面，檢測前先做 Sauvola 二值化：
+#     python3 paddle_batch_v5_native_res.py --image page.jpg --preprocess sauvola --to_pagexml
 #
 # ======================================================================
 
-import os, json, argparse, time, signal, glob
+import os, sys, json, argparse, time, signal, glob
 from pathlib import Path
 from PIL import Image, ImageDraw
 import numpy as np
@@ -88,6 +97,62 @@ def load_image(image_path, pre_max_side=None):
         img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
         print(f"[WARN] 已按 --pre_max_side 縮放至 {img.size}（注意：縮放會損害密排豎列的分離）")
     return img, scale
+
+# ---------- 可選預處理（併自舊 experimental 單張腳本，改為原生解析度直接作用於影像） ----------
+# 僅作為檢測階段的輔助，用於透印、顯影不足、低對比的頁面。兩者都不改變像素
+# 位置，因此偵測框可直接映射回原圖座標，無須額外校正。輸出一律轉回三通道
+# RGB，因為 PaddleOCR 檢測要求 RGB 輸入（單通道會在 run_detection 的
+# arr[:, :, ::-1] 處報錯）。以下參數沿用舊腳本的取值，集中於此便於調整。
+SAUVOLA_WINDOW   = 25     # Sauvola 窗口，必須為奇數
+CLAHE_STD_WINDOW = 15     # 局部對比度（標準差）計算窗口
+CLAHE_STD_THRESH = 30.0   # 局部標準差低於此值的區域才施加 CLAHE
+CLAHE_CLIP_LIMIT = 2.0
+CLAHE_TILE       = 8
+
+def _gray_to_rgb(gray_uint8):
+    """單通道 uint8 -> 三通道 RGB PIL 影像"""
+    return Image.fromarray(np.stack([gray_uint8] * 3, axis=-1), mode="RGB")
+
+def preprocess_sauvola(img):
+    """Sauvola 局部二值化。輸入 / 輸出皆為 PIL RGB，尺寸不變。"""
+    import cv2
+    from skimage.filters import threshold_sauvola
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    thresh = threshold_sauvola(gray, window_size=SAUVOLA_WINDOW)
+    binary = ((gray > thresh).astype(np.uint8)) * 255
+    print("[INFO] 已套用 Sauvola 二值化預處理")
+    return _gray_to_rgb(binary)
+
+def _local_std(gray_f, win):
+    """以盒濾波向量化計算局部標準差，等價於 size=win 的滑窗 np.std（ddof=0）。
+    取代舊腳本的 scipy generic_filter 逐窗 Python 迴圈：v5 不再預縮放，
+    原生解析度下逐窗迴圈會慢到不可用。盒濾波為 O(n)，結果一致。
+    std = sqrt(E[x^2] - E[x]^2)。"""
+    import cv2
+    mean    = cv2.boxFilter(gray_f, ddepth=-1, ksize=(win, win))
+    mean_sq = cv2.boxFilter(gray_f * gray_f, ddepth=-1, ksize=(win, win))
+    var = np.maximum(mean_sq - mean * mean, 0.0)
+    return np.sqrt(var)
+
+def preprocess_clahe_selective(img):
+    """只對局部低對比區域施加 CLAHE，清晰區維持原樣以免增噪。
+    輸入 / 輸出皆為 PIL RGB，尺寸不變。"""
+    import cv2
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    local_std = _local_std(gray.astype(np.float32), CLAHE_STD_WINDOW)
+    mask = local_std < CLAHE_STD_THRESH
+    clahe = cv2.createCLAHE(clipLimit=CLAHE_CLIP_LIMIT, tileGridSize=(CLAHE_TILE, CLAHE_TILE))
+    enhanced = clahe.apply(gray)
+    result = np.where(mask, enhanced, gray).astype(np.uint8)
+    print(f"[INFO] 已套用選擇性 CLAHE：增強 {int(mask.sum())} / {mask.size} 個低對比像素")
+    return _gray_to_rgb(result)
+
+def apply_preprocess(img, mode):
+    if mode == "sauvola":
+        return preprocess_sauvola(img)
+    if mode == "clahe_selective":
+        return preprocess_clahe_selective(img)
+    return img
 
 # ---------- rotate90 座標映射 ----------
 def rotate_img_cw(img):
@@ -409,6 +474,8 @@ def process_image(image_path, args):
         return
 
     img, scale = load_image(image_path, args.pre_max_side)
+    if args.preprocess != "none":
+        img = apply_preprocess(img, args.preprocess)
     boxes, used = detect_with_strategy(img, args)
 
     if not args.no_vertical_filter:
@@ -459,6 +526,10 @@ def main():
                     help="v4 的 2.0 會把鄰列黏連；密排頁建議 1.2-1.5")
     ap.add_argument("--use_textline_orientation", action="store_true",
                     help="seg_rec 模式下若識別出現大量顛倒文字再開啟")
+    ap.add_argument("--preprocess", choices=["none", "sauvola", "clahe_selective"], default="none",
+                    help="檢測前影像預處理（僅 seg / seg_rec）：sauvola 局部二值化，"
+                         "適合透印 / 顯影不足；clahe_selective 只增強局部低對比區域。"
+                         "不改變像素位置，偵測框仍映射回原圖座標")
     ap.add_argument("--pre_max_side", type=int, default=None,
                     help="僅在記憶體不足時使用；會降低密排列分離能力")
     ap.add_argument("--no_vertical_filter", action="store_true")
@@ -466,6 +537,14 @@ def main():
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--device", default="cpu", help="cpu / gpu:0")
     args = ap.parse_args()
+
+    # 非 UTF-8 語系（IDE / cron / 雙擊啟動、PYTHONUTF8=0）下，中文路徑會讓
+    # print 與檔名處理拋 UnicodeEncodeError，導致輸出資料夾建不出正常名稱。
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass  # 已被重導向到不可重設的串流時跳過
 
     if args.mode == "rec" and not args.xml_dir:
         ap.error("rec 模式需要 --xml_dir")
@@ -475,7 +554,7 @@ def main():
     if not args.outdir:
         suffix = {"seg": "_seg", "rec": "_rec", "seg_rec": "_rec_seg"}[args.mode]
         src = args.input_dir if args.input_dir else os.path.dirname(os.path.abspath(args.image))
-        base = os.path.basename(os.path.normpath(src))
+        base = os.path.basename(os.path.normpath(src)) or "output"
         args.outdir = os.path.join(os.path.dirname(os.path.normpath(src)), base + suffix)
         print(f"[INFO] 自動輸出資料夾：{args.outdir}")
 
