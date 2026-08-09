@@ -315,7 +315,7 @@ Applies to the old 3.0.x stack only: pin `numpy==1.26.4`. PaddleOCR 3.2.x and la
 
 ## References
 
-- Li, X., Wang, W., Hou, W., Liu, R., Lu, T., Yang, J. (2019). Shape Robust Text Detection with Progressive Scale Expansion Network (PSENet). CVPR 2019. https://arxiv.org/abs/1806.02559
+- Li, X., Wang, W., Hou, W., Liu, R.-Z., Lu, T., Yang, J. (2018). Shape Robust Text Detection with Progressive Scale Expansion Network (PSENet). arXiv:1806.02559. (Later published in revised form at CVPR 2019.)
 - Liao, M., Wan, Z., Yao, C., Chen, K., Bai, X. (2020). Real-Time Scene Text Detection with Differentiable Binarization (DB). AAAI 2020. https://arxiv.org/abs/1911.08947 (the detector family PaddleOCR uses)
 - Sauvola, J., Pietikäinen, M. (2000). Adaptive document image binarization. Pattern Recognition 33(2): 225–236. (the method behind `--preprocess sauvola`)
 - Yang, H., Jin, L., Huang, W., Yang, Z., Lai, S., Sun, J. (2018). Dense and Tight Detection of Chinese Characters in Historical Documents: Datasets and a Recognition Guided Detector. IEEE Access 6: 30174–30183. https://ieeexplore.ieee.org/document/8364534 ; datasets: https://github.com/HCIILAB/TKH_MTH_Datasets_Release
