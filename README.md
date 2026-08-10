@@ -23,7 +23,7 @@ OpenCV and NumPy arrive with PaddleOCR. Model weights download on first run; if 
 
 ## Which script do I use?
 
-Everything you run lives in `current/`. The other folders are history: `experimental/` is the development trail, `legacy/` holds the original 2.x scripts that no longer run on PaddleOCR 3.x.
+Everything you run lives in `current/`. The other folders are history: `legacy/` holds earlier working versions that `current/` supersedes, kept so the lineage stays legible; `experimental/` holds development attempts that never produced importable output.
 
 | Your situation | Use |
 |---|---|
@@ -87,8 +87,8 @@ paddleocr-htr-ancient-chinese/
 │   ├── util_diagnose_paddle_api.py
 │   ├── util_merge_page_xml.py
 │   └── util_compare_det_strategies.py       # strategy benchmark, see case study
-├── experimental/          # development trail, not for use
-└── legacy/                # original 2.x scripts, do not run on 3.x
+├── experimental/          # dev attempts that never produced importable output
+└── legacy/                # earlier working versions, superseded by current/
 ```
 
 ---
@@ -125,9 +125,7 @@ Runs one page through three configurations (the v4-equivalent settings, native r
 
 ### experimental/
 
-Reference only. None of these should be used. Two different reasons put a script here, and the distinction matters if you go looking for a working example:
-
-**Defunct: they never produced importable output.** The single most useful lesson from this phase: eScriptorium silently discards `TextLine` elements with no `Baseline` child. No error is raised on import; the segmentation seems to load, but the panel stays blank. Every `exp_*` script below lacks that element.
+Reference only. None of these should be used. They share one defect: they never produced importable output. eScriptorium silently discards any `TextLine` with no `Baseline` child, so on import the segmentation seems to load but the panel stays blank, and every `exp_*` script below lacks that element.
 
 | Script | What it tried | Why it fails |
 |--------|--------------|----------------|
@@ -144,7 +142,7 @@ Reference only. None of these should be used. Two different reasons put a script
 
 ### legacy/
 
-The original scripts, written against PaddleOCR 2.x. They lost effect once the 3.x API tightened its parameter validation, so they do not run on any 3.x install. Kept for provenance only; see `legacy/README.md`.
+Earlier working versions, superseded by `current/` and kept so the lineage stays legible. All of them emit baselines and imported cleanly in their day. `paddle_batch_v1.py` is the 2.x-era original and does not run on 3.x. `paddle_batch_v2_predict_api.py` was the first working 3.2.x batch script and left `use_textline_orientation=True`; `paddle_batch_v3_no_orientation.py` turned that off after the orientation classifier worsened classical column layouts; `current/`'s v4 keeps v3's settings and adds the vertical filter. The `paddle_single_*` scripts are the single-image preprocessing predecessors folded into v5. See `legacy/README.md`.
 
 ---
 
@@ -211,7 +209,7 @@ Five pages spanning the layout types of *Xing li da quan shu* were run through `
 | | | native | 25 | 7 | 0.28 | 306 | wide merged boxes |
 | | | rotate90 | 17 | 17 | 1.00 | 54 | **no omissions, fully vertical** |
 
-Two findings stand out. First, on dense small-character pages (3, 4, 5), `rotate90` is the only strategy that yields vertical columns at all; `legacy1200` and `native` return horizontal stripes spanning the full text block, with median box widths of 500 to 760 px, essentially page-wide. Second, **native resolution alone barely moves the needle**: on pages 1, 3, and 4 the native results almost match legacy1200, and on page 5 they are marginally worse. The resolution-starvation hypothesis behind v5's design is therefore at most secondary. Rotation is the decisive intervention.
+Two findings stand out. First, on dense small-character pages (3, 4, 5), `rotate90` is the only strategy that yields vertical columns at all. On pages 3 and 4, `legacy1200` and `native` collapse into essentially page-wide horizontal stripes (median box widths 520 to 763 px); page 5 comes out messier rather than cleanly striped, yet its `legacy1200` and `native` vertical shares stay at or below 0.35 while `rotate90` reaches 1.0. Second, **native resolution alone barely moves the needle**: on pages 1, 3, and 4 the native results almost match legacy1200, and on page 5 they are marginally worse. The resolution-starvation hypothesis behind v5's design is therefore at most secondary. Rotation is the decisive intervention.
 
 ### Strategy selection guide
 
@@ -255,7 +253,7 @@ The core stack is PaddleOCR plus OpenCV and NumPy, which install together. The `
 | `current/paddle_batch_v4_vertical_filter.py` | 3.2.x to 3.7.0 | `predict()` API, `text_det_*` parameter names |
 | `current/paddle_batch_v5_native_res.py`, `utils/util_compare_det_strategies.py` | 3.0.x to 3.7.0 | module APIs; validated on 3.0.x and 3.6.x, parameter-checked against 3.7.0 |
 | `experimental/` v2, v3 | 3.2.x and later | superseded by v4 |
-| `legacy/` | 2.x only | do not run on 3.x; see `legacy/README.md` |
+| `legacy/` | mixed | v1 is 2.x-era; v2 to v3 run on 3.2.x; all superseded by `current/` |
 
 **Standard install (fresh environment):**
 ```bash
